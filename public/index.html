@@ -9,87 +9,72 @@
 <body>
 <video></video>
 <script>
-  // シグナリングサーバーであるWebSocketサーバーに接続
-  // 今回はsocket.ioを採用
-  const socket = io('http://localhost:3000')
-  console.info(socket)
+  ;(async () => {
+    // シグナリングサーバーであるWebSocketサーバーに接続
+    // 今回はsocket.ioを採用
+    const socket = io('http://localhost:3000')
 
-  /**
-   * @type {HTMLVideoElement}
-   */
-  const video = document.querySelector('video')
+    /**
+     * RTCPeerConnectionをクライアントごとに格納する変数
+     * keyをクライアントID（ソケットID）として保存する
+     */
+    const connections = {}
 
-  video.addEventListener('click', evt => {
-    if (video.paused) video.play()
-    else video.pause()
-  })
+    /**
+     * PC映像streamを取得
+     * @type {MediaStream}
+     */
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true })
 
-  /**
-   * コネクションを保存しておく用
-   *
-   * @type {RTCPeerConnection}
-   */
-  let connection = null
+    // ソケットサーバー疎通確認
+    socket.on('connect', () => console.log('socket', 'connected'))
 
-  // ソケット接続で配信要求する
-  socket.on('connect', () => socket.emit('request'))
+    // 配信要求を受ける
+    // Client ID （cid）を受け取りコネクションを作成する
+    socket.on('request', ({ cid }) => sendOffer(cid))
 
-  // アンサーを受ける
-  socket.on('offer', async ({ offer }) => sendAnswer(offer))
+    // アンサーを受ける
+    socket.on('answer', async ({ cid, answer }) => {
+      if (cid in connections) connections[cid].setRemoteDescription(answer)
+    })
 
-  // closeがきたらコネクションを切ってvideoも止める
-  socket.on('close', () => {
-    if (connection) {
-      video.pause()
-      video.srcObject = null
-      connection.close()
-      connection = null
+    /**
+     * オファーを送信する
+     *
+     * @param {string} cid Client ID
+     * @return {void}
+     */
+    async function sendOffer(cid) {
+      // コネクションの設定
+      const pcConfig = {
+        // STUNサーバーはGoogle様のものを利用させていただく
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      }
+
+      // コネクションの作成
+      const peer = new RTCPeerConnection(pcConfig)
+
+      // cidをキーとしてコネクションを保存
+      connections[cid] = peer
+
+      // コネクションにストリームを設定
+      stream.getTracks().forEach(track => peer.addTrack(track, stream))
+
+      // ICE candidateを取得イベントハンドラ
+      peer.onicecandidate = evt => {
+        // evt.candidateがnullならICE Candidateを全て取得したとみなしてオファーを送信
+        if (!evt.candidate)
+          socket.emit('offer', { offer: peer.localDescription, cid })
+      }
+
+      // オファーを作成
+      const offer = await peer.createOffer()
+
+      // オファーを自身に設定
+      // STUNサーバーへアクセスが始まり、onicecandidateが呼ばれるようになる
+      await peer.setLocalDescription(offer)
     }
-  })
-
-  /**
-   * アンサーを送信する
-   *
-   * @param {RTCSessionDescription} offer
-   * @return {void}
-   */
-  async function sendAnswer(offer) {
-    // コネクションの設定
-    const pcConfig = {
-      // STUNサーバーはGoogle様のものを利用させていただく
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    }
-
-    // コネクションの作成
-    const peer = new RTCPeerConnection(pcConfig)
-
-    // コネクションを保存
-    connection = peer
-
-    // 配信イベントハンドラ的な？
-    peer.ontrack = evt => {
-      console.log('ontrack')
-
-      // streamを設定
-      video.srcObject = evt.streams[0]
-    }
-
-    // ICE candidateを取得イベントハンドラ
-    peer.onicecandidate = evt => {
-      // evt.candidateがnullならICE Candidateを全て取得したとみなしてアンサーを送信
-      if (!evt.candidate)
-        socket.emit('answer', { answer: peer.localDescription })
-    }
-
-    // コネクションの通信先としてオファーを設定
-    await peer.setRemoteDescription(offer)
-
-    // アンサーを作成
-    const answer = await peer.createAnswer()
-
-    // アンサーを自身に設定
-    await peer.setLocalDescription(answer)
-  }
+  })()
   </script>
 </body>
 </html>
