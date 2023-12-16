@@ -4,7 +4,11 @@
   "main": "index.js",
   "author": "sawa-zen <sawadasuiren@gmail.com>",
   "license": "MIT",
+  "scripts": {
+    "start": "node main.js"
+  },
   "dependencies": {
+    "express": "^4.18.2",
     "http": "^0.0.1-security",
     "socket.io": "^4.7.2"
   }
