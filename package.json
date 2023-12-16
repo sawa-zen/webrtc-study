@@ -1,0 +1,11 @@
+{
+  "name": "signaling-server",
+  "version": "0.0.1",
+  "main": "index.js",
+  "author": "sawa-zen <sawadasuiren@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "http": "^0.0.1-security",
+    "socket.io": "^4.7.2"
+  }
+}
