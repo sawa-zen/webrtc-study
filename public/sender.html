@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
+</head>
+<body>
+  <video style="background-color: red;"></video>
+  <button>送信</button>
+  <script>
+    (() => {
+      const socket = io('http://localhost:3000')
+      const button = document.querySelector('button')
+
+      socket.on('recieve_message', (data) => {
+        console.info('recieve_message', data)
+      })
+
+      button.addEventListener('click', () => {
+        socket.emit('send_message', { message: 'from distributor' })
+      })
+    })()
+
+    // ;(async () => {
+    //   const socket = io('http://localhost:3000')
+
+    //   const connections = {}
+
+    //   // 画面キャプチャのストリームを取得
+    //   const stream = await navigator.mediaDevices.getDisplayMedia({
+    //     video: {
+    //       displaySurface: 'monitor',
+    //       frameRate: 20,
+    //     },
+    //     audio: false
+    //   })
+
+    //   console.log(stream)
+
+    //   // 配信要求を受ける
+    //   // Client ID （clientId）を受け取りコネクションを作成する
+    //   socket.on('request', ({ clientId }) => {
+    //     console.info('index request', clientId)
+    //     sendOffer('hoge')
+    //   })
+
+    //   // アンサーを受ける
+    //   socket.on('answer', async ({ clientId, answer }) => {
+    //     console.info('index answer', clientId, answer)
+    //     // setRemoteDescriptionでSDPを設定する
+    //     if (clientId in connections) connections[clientId].setRemoteDescription(answer)
+    //   })
+
+    //   /**
+    //    * オファーを送信する
+    //    *
+    //    * @param {string} cid Client ID
+    //    * @return {void}
+    //    */
+    //   async function sendOffer(clientId) {
+    //     console.info('index sendOffer', clientId)
+
+    //     // コネクションの作成
+    //     const peer = new RTCPeerConnection({
+    //       // STUNサーバーはGoogle様のものを利用させていただく
+    //       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    //     })
+
+    //     // clientIdをキーとしてコネクションを保存
+    //     connections[clientId] = peer
+
+    //     // コネクションにストリームを設定
+    //     stream.getTracks().forEach(track => peer.addTrack(track, stream))
+
+    //     // ICE candidateを取得イベントハンドラ
+    //     peer.onicecandidate = (event) => {
+    //       console.log('onicecandidate', event)
+    //       // evt.candidateがnullならICE Candidateを全て取得したとみなしてオファーを送信
+    //       if (!evt.candidate)
+    //         socket.emit('offer', { offer: peer.localDescription, clientId })
+    //     }
+
+    //     // オファーを作成
+    //     const offer = await peer.createOffer()
+
+    //     // オファーを自身に設定
+    //     // STUNサーバーへアクセスが始まり、onicecandidateが呼ばれるようになる
+    //     await peer.setLocalDescription(offer)
+    //   }
+
+    //   sendOffer('test')
+    // })()
+  </script>
+</body>
+</html>
