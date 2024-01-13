@@ -14,14 +14,25 @@
     (async () => {
       const socket = io('http://localhost:3000')
       const button = document.querySelector('button')
+      const peers = []
       socket.on('recieve_message', (data) => { console.info('recieve_message', data) })
       button.addEventListener('click', () => { socket.emit('send_message', { message: 'from sender' }) })
 
-      const makeOffer = async () => {
+      const sendOffer = async () => {
         const peer = createPeerConnection()
 
         const offer = await peer.createOffer();
         await peer.setLocalDescription(offer);
+
+        const sdp = peer.localDescription
+        socket.emit('SEND_SDP', { sdp: sdp })
+      }
+
+      const sendAnswer = async (id) => {
+        const peer = peers[id]
+
+        const answer = await peer.createAnswer();
+        await peer.setLocalDescription(answer);
 
         const sdp = peer.localDescription
         socket.emit('SEND_SDP', { sdp: sdp })
@@ -52,10 +63,14 @@
         console.info('handleRecieveOffer', sdp.id)
         const peer = createPeerConnection(sdp.id)
 
+        if (!peers[sdp.id]) {
+          peers[sdp.id] = peer;
+        }
+
         const offer = new RTCSessionDescription(sdp);
         await peer.setRemoteDescription(offer);
 
-        // makeAnswer(sdp.id)
+        sendAnswer(sdp.id)
       }
 
       const handleRecieveAnswer = (sdp) => {
@@ -73,7 +88,7 @@
 
       socket.on('RECEIVE_SDP', handleRecieveSDP)
 
-      makeOffer()
+      sendOffer()
     })()
   </script>
 </body>
