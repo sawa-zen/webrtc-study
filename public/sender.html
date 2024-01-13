@@ -11,56 +11,11 @@
   <canvas></canvas>
   <button>送信</button>
   <script>
-    const createPeerConnection = () => {
-      const config = { iceServers: [] };
-      const peer = new RTCPeerConnection(config);
-      peer.ontrack = event => {
-        // this.onAddStream(id, event.streams[0]);
-      }
-      peer.onremovestream = event => {
-        // this.onRemoveStream(id);
-      }
-      peer.onicecandidate = event => {
-        // this.onIceCandidate(id, event.candidate);
-      }
-      peer.oniceconnectionstatechange = event => {
-        if (peer.iceConnectionState === 'disconnected') {
-          console.log('state disconnected to: ' + id);
-          // this.onDisconnect(id);
-        }
-      }
-      return peer;
-    }
-
-    const handleRecieveOffer = (sdp) => {
-      console.info('handleRecieveOffer')
-    }
-
-    const handleRecieveAnswer = (sdp) => {
-      console.info('handleRecieveAnswer')
-    }
-
-    const handleRecieveSDP = (sdp) => {
-      console.info('handleRecieveSDP', sdp)
-      switch (sdp.type) {
-        case 'offer': handleRecieveOffer(sdp); break;
-        case 'answer': handleRecieveAnswer(sdp); break;
-        default: console.log('unkown sdp...'); break;
-      }
-    }
-
     (async () => {
       const socket = io('http://localhost:3000')
       const button = document.querySelector('button')
-
-      socket.on('recieve_message', (data) => {
-        console.info('recieve_message', data)
-      })
-
-      button.addEventListener('click', () => {
-        socket.emit('send_message', { message: 'from sender' })
-      })
-
+      socket.on('recieve_message', (data) => { console.info('recieve_message', data) })
+      button.addEventListener('click', () => { socket.emit('send_message', { message: 'from sender' }) })
 
       const makeOffer = async () => {
         const peer = createPeerConnection()
@@ -70,6 +25,50 @@
 
         const sdp = peer.localDescription
         socket.emit('SEND_SDP', { sdp: sdp })
+      }
+
+      const createPeerConnection = (id) => {
+        const config = { iceServers: [] };
+        const peer = new RTCPeerConnection(config);
+        peer.ontrack = event => {
+          // this.onAddStream(id, event.streams[0]);
+        }
+        peer.onremovestream = event => {
+          // this.onRemoveStream(id);
+        }
+        peer.onicecandidate = event => {
+          // this.onIceCandidate(id, event.candidate);
+        }
+        peer.oniceconnectionstatechange = event => {
+          if (peer.iceConnectionState === 'disconnected') {
+            console.log('state disconnected to: ' + id);
+            // this.onDisconnect(id);
+          }
+        }
+        return peer;
+      }
+
+      const handleRecieveOffer = async (sdp) => {
+        console.info('handleRecieveOffer', sdp.id)
+        const peer = createPeerConnection(sdp.id)
+
+        const offer = new RTCSessionDescription(sdp);
+        await peer.setRemoteDescription(offer);
+
+        // makeAnswer(sdp.id)
+      }
+
+      const handleRecieveAnswer = (sdp) => {
+        console.info('handleRecieveAnswer', sdp)
+      }
+
+      const handleRecieveSDP = (sdp) => {
+        console.info('handleRecieveSDP', sdp)
+        switch (sdp.type) {
+          case 'offer': handleRecieveOffer(sdp); break;
+          case 'answer': handleRecieveAnswer(sdp); break;
+          default: console.log('unkown sdp...'); break;
+        }
       }
 
       socket.on('RECEIVE_SDP', handleRecieveSDP)
