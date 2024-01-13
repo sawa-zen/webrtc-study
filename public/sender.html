@@ -41,6 +41,7 @@
     }
 
     const handleRecieveSDP = (sdp) => {
+      console.info('handleRecieveSDP', sdp)
       switch (sdp.type) {
         case 'offer': handleRecieveOffer(sdp); break;
         case 'answer': handleRecieveAnswer(sdp); break;
@@ -60,14 +61,6 @@
         socket.emit('send_message', { message: 'from sender' })
       })
 
-      // // 画面キャプチャのストリームを取得
-      // const stream = await navigator.mediaDevices.getDisplayMedia({
-      //   video: {
-      //     displaySurface: 'monitor',
-      //     frameRate: 20,
-      //   },
-      //   audio: false
-      // })
 
       const makeOffer = async () => {
         const peer = createPeerConnection()
@@ -75,7 +68,8 @@
         const offer = await peer.createOffer();
         await peer.setLocalDescription(offer);
 
-        socket.emit('SEND_SDP', offer)
+        const sdp = peer.localDescription
+        socket.emit('SEND_SDP', { sdp: sdp })
       }
 
       socket.on('RECEIVE_SDP', handleRecieveSDP)

@@ -31,7 +31,7 @@ io.on('connect', socket => {
     if (data.target) {
       socket.to(data.target).emit('RECEIVE_SDP', data.sdp)
     } else {
-      socket.broadcast.to(socket.roomname).emit('RECEIVE_SDP', data.sdp)
+      socket.broadcast.emit('RECEIVE_SDP', data.sdp)
     }
   })
 
