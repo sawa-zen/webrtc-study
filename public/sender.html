@@ -14,6 +14,7 @@
   <button id="submit">送信</button>
   <script>
     (async () => {
+      var socketId = null;
       const socket = io('http://localhost:3000')
       const canvas = document.createElement('canvas')
       const video = document.querySelector('video')
@@ -22,6 +23,7 @@
       const peers = []
 
       const sendOffer = async (id) => {
+        console.info('sendOffer', id)
         const peer = peers[id] || createPeerConnection(id)
 
         const stream = video.srcObject || canvas.captureStream(10)
@@ -41,6 +43,7 @@
       }
 
       const sendAnswer = async (id) => {
+        console.info('sendAnswer', id)
         const peer = peers[id]
         if (!peer) return
 
@@ -50,12 +53,17 @@
         socket.emit('SEND_SDP', { target: id, sdp: peer.localDescription })
       }
 
+      const sendCall = () => {
+        console.info('sendCall')
+        socket.emit('SEND_CALL', { target: socketId })
+      }
+
       const createPeerConnection = (id, stream) => {
         const config = { iceServers: [] };
         const peer = new RTCPeerConnection(config);
         peer.ontrack = (event) => {
           console.info('ontrack', event.streams[0])
-          video.srcObject = stream
+          video.srcObject = event.streams[0]
           video.play()
           console.info('video play')
         }
@@ -119,19 +127,39 @@
         peer.addIceCandidate(candidate)
       }
 
+      const handleRecieveConnected = (data) => {
+        console.info('handleReceveEnter', data)
+        // socket情報をstateに持っておく
+        socketId = data.id
+        // 部屋に入る
+        const room = 'test'
+        socket.emit('SEND_ENTER', room);
+      }
+
+      const handleRecieveCall = (data) => {
+        console.info('handleReceiveCall', data)
+        sendOffer(data.id)
+      }
+
+      const handleClickButton = () => {
+        // 画面キャプチャ
+        navigator.mediaDevices
+          .getDisplayMedia({ video: true, audio: false })
+          .then(async stream => {
+            video.srcObject = stream
+            await video.play()
+            if (Object.keys(peers).length > 0) {
+              sendCall()
+            }
+          })
+      }
+
+      socket.on('RECEIVE_CONNECTED', handleRecieveConnected)
+      socket.on('RECEIVE_CALL', handleRecieveCall)
       socket.on('RECEIVE_SDP', handleRecieveSDP)
       socket.on('RECEIVE_CANDIDATE', handleReceiveCandidate)
 
-      button.addEventListener('click', () => {
-        const userId = input.value
-
-        navigator.mediaDevices.getDisplayMedia({
-          video: { cursor: "always" },
-          audio: false,
-        }).then(stream => {
-          sendOffer()
-        })
-      })
+      button.addEventListener('click', handleClickButton)
     })()
   </script>
 </body>

@@ -19,9 +19,23 @@ io.on('connect', socket => {
   console.log('io', 'connect')
   console.log('io', 'socket: ', socket.id)
 
-  socket.on('send_message', (data) => {
-    console.log('socket', 'send_message', data.message)
-    socket.broadcast.emit('recieve_message', data.message)
+  socket.emit('RECEIVE_CONNECTED', { id: socket.id })
+
+  // サーバ側
+  socket.on('SEND_ENTER', function(roomname) {
+    socket.join(roomname);
+    console.log('enter id=' + socket.id + ' enter room:' + roomname);
+    socket.roomname = roomname;
+    socket.broadcast
+      .to(socket.roomname)
+      .emit('RECEIVE_CALL', { id: socket.id });
+  })
+
+  socket.on('SEND_CALL', function() {
+    console.log('call from:' + socket.id + ', room:' + socket.roomname);
+    socket.broadcast
+      .to(socket.roomname)
+      .emit('RECEIVE_CALL', { id: socket.id });
   })
 
   // offerとanswerは SDP(SessionDescriptionProtocol)というプロトコルとして処理します
