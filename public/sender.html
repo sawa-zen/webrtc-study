@@ -7,53 +7,66 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
 </head>
 <body>
-  <video style="background-color: red;"></video>
+  <video></video>
   <canvas></canvas>
-  <button>送信</button>
+  <input type="text" />
+  <button>start</button>
+  <button id="submit">送信</button>
   <script>
     (async () => {
       const socket = io('http://localhost:3000')
-      const button = document.querySelector('button')
+      const canvas = document.createElement('canvas')
+      const video = document.querySelector('video')
+      const button = document.getElementById('submit')
+      const input = document.querySelector('input')
       const peers = []
-      socket.on('recieve_message', (data) => { console.info('recieve_message', data) })
-      button.addEventListener('click', () => { socket.emit('send_message', { message: 'from sender' }) })
 
-      const sendOffer = async () => {
-        const peer = createPeerConnection()
+      const sendOffer = async (id) => {
+        const peer = peers[id] || createPeerConnection(id)
 
-        const offer = await peer.createOffer();
-        await peer.setLocalDescription(offer);
+        const stream = video.srcObject || canvas.captureStream(10)
+        stream.getTracks().forEach(track => {
+          peer.addTrack(track, stream)
+        })
 
-        const sdp = peer.localDescription
-        socket.emit('SEND_SDP', { sdp: sdp })
+        if (!peers[id]) {
+          console.info('add peer', id)
+          peers[id] = peer
+        }
+
+        const offer = await peer.createOffer()
+        await peer.setLocalDescription(offer)
+
+        socket.emit('SEND_SDP', { target: id, sdp: peer.localDescription })
       }
 
       const sendAnswer = async (id) => {
         const peer = peers[id]
+        if (!peer) return
 
-        const answer = await peer.createAnswer();
-        await peer.setLocalDescription(answer);
+        const answer = await peer.createAnswer()
+        await peer.setLocalDescription(answer)
 
-        const sdp = peer.localDescription
-        socket.emit('SEND_SDP', { sdp: sdp })
+        socket.emit('SEND_SDP', { target: id, sdp: peer.localDescription })
       }
 
-      const createPeerConnection = (id) => {
+      const createPeerConnection = (id, stream) => {
         const config = { iceServers: [] };
         const peer = new RTCPeerConnection(config);
-        peer.ontrack = event => {
-          // this.onAddStream(id, event.streams[0]);
-        }
-        peer.onremovestream = event => {
-          // this.onRemoveStream(id);
+        peer.ontrack = (event) => {
+          console.info('ontrack', event.streams[0])
+          video.srcObject = stream
+          video.play()
+          console.info('video play')
         }
         peer.onicecandidate = event => {
-          // this.onIceCandidate(id, event.candidate);
-        }
-        peer.oniceconnectionstatechange = event => {
-          if (peer.iceConnectionState === 'disconnected') {
-            console.log('state disconnected to: ' + id);
-            // this.onDisconnect(id);
+          console.log('onicecandidate', event)
+          if (event.candidate) {
+            if (!peers[id]) return;
+            console.log('sending CANDIDATE=' + event.candidate);
+            socket.emit('SEND_CANDIDATE', { target: id, ice: event.candidate });
+          } else {
+            console.log('empty ice event')
           }
         }
         return peer;
@@ -61,20 +74,30 @@
 
       const handleRecieveOffer = async (sdp) => {
         console.info('handleRecieveOffer', sdp.id)
-        const peer = createPeerConnection(sdp.id)
+        const peer = peers[sdp.id] || createPeerConnection(sdp.id)
+
+        const stream = video.srcObject || canvas.captureStream(10)
+        stream.getTracks().forEach(track => {
+          peer.addTrack(track, stream)
+        })
 
         if (!peers[sdp.id]) {
+          console.info('add peer', sdp.id)
           peers[sdp.id] = peer;
         }
 
-        const offer = new RTCSessionDescription(sdp);
-        await peer.setRemoteDescription(offer);
+        const offer = new RTCSessionDescription(sdp)
+        await peer.setRemoteDescription(offer)
 
         sendAnswer(sdp.id)
       }
 
       const handleRecieveAnswer = (sdp) => {
-        console.info('handleRecieveAnswer', sdp)
+        console.info('handleRecieveAnswer', sdp.id)
+        const peer = peers[sdp.id]
+        if (!peer) return;
+        const answer = new RTCSessionDescription(sdp);
+        peer.setRemoteDescription(answer)
       }
 
       const handleRecieveSDP = (sdp) => {
@@ -86,9 +109,29 @@
         }
       }
 
-      socket.on('RECEIVE_SDP', handleRecieveSDP)
+      const handleReceiveCandidate = (ice) => {
+        console.log('receive candidate:' + ice.id);
+        const peer = peers[ice.id];
+        if (!peer) return;
 
-      sendOffer()
+        const candidate = new RTCIceCandidate(ice);
+        console.log(candidate);
+        peer.addIceCandidate(candidate)
+      }
+
+      socket.on('RECEIVE_SDP', handleRecieveSDP)
+      socket.on('RECEIVE_CANDIDATE', handleReceiveCandidate)
+
+      button.addEventListener('click', () => {
+        const userId = input.value
+
+        navigator.mediaDevices.getDisplayMedia({
+          video: { cursor: "always" },
+          audio: false,
+        }).then(stream => {
+          sendOffer()
+        })
+      })
     })()
   </script>
 </body>
