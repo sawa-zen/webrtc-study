@@ -7,29 +7,54 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
 </head>
 <body>
-  <video></video>
-  <canvas></canvas>
-  <input type="text" />
-  <button>start</button>
-  <button id="submit">送信</button>
+  <div id="entrance">
+    <input type="text" id="roomName" />
+    <button id="enter">入室</button>
+  </div>
+  <!-- room は最初非表示 -->
+  <div id="room" style="background-color: red; display: none;">
+    <div id="before_call">
+      <button id="start_capture">画面共有</button>
+      <button id="call">通話開始</button>
+    </div>
+    <div id="after_call">
+      <video id="my_video" autoplay playsinline style="border: 1px solid black; width: 200px;"></video>
+      <div id="videos">
+      </div>
+    </div>
   <script>
     (async () => {
       var socketId = null;
-      const socket = io('http://localhost:3000')
-      const canvas = document.createElement('canvas')
-      const video = document.querySelector('video')
-      const button = document.getElementById('submit')
-      const input = document.querySelector('input')
       const peers = []
+
+      const socket = io('http://localhost:3000')
+
+      const entranceView = document.getElementById('entrance')
+      const input = document.querySelector('input')
+      const enterButton = document.getElementById('enter')
+
+      const roomView = document.getElementById('room')
+      const beforeCallView = document.getElementById('before_call')
+      const startCaptureButton = document.getElementById('start_capture')
+      const callButton = document.getElementById('call')
+
+      const afterCallView = document.getElementById('after_call')
+      const myVideo = document.getElementById('my_video')
+      const videos = document.getElementById('videos')
+
+      const createVideo = (id) => {
+        const video = document.createElement('video')
+        video.id = id
+        video.autoplay = true
+        video.playsinline = true
+        video.style.border = '1px solid black'
+        video.style.width = '200px'
+        return video
+      }
 
       const sendOffer = async (id) => {
         console.info('sendOffer', id)
         const peer = peers[id] || createPeerConnection(id)
-
-        const stream = video.srcObject || canvas.captureStream(10)
-        stream.getTracks().forEach(track => {
-          peer.addTrack(track, stream)
-        })
 
         if (!peers[id]) {
           console.info('add peer', id)
@@ -60,6 +85,9 @@
 
       const createPeerConnection = (id, stream) => {
         const config = { iceServers: [] };
+        const video = createVideo(id)
+        videos.appendChild(video)
+
         const peer = new RTCPeerConnection(config);
         peer.ontrack = (event) => {
           console.info('ontrack', event.streams[0])
@@ -77,6 +105,7 @@
             console.log('empty ice event')
           }
         }
+
         return peer;
       }
 
@@ -84,7 +113,7 @@
         console.info('handleRecieveOffer', sdp.id)
         const peer = peers[sdp.id] || createPeerConnection(sdp.id)
 
-        const stream = video.srcObject || canvas.captureStream(10)
+        const stream = myVideo.srcObject
         stream.getTracks().forEach(track => {
           peer.addTrack(track, stream)
         })
@@ -127,13 +156,11 @@
         peer.addIceCandidate(candidate)
       }
 
+      // Socket との接続が確立したら socket id を受け取る
       const handleRecieveConnected = (data) => {
         console.info('handleReceveEnter', data)
         // socket情報をstateに持っておく
         socketId = data.id
-        // 部屋に入る
-        const room = 'test'
-        socket.emit('SEND_ENTER', room);
       }
 
       const handleRecieveCall = (data) => {
@@ -141,17 +168,32 @@
         sendOffer(data.id)
       }
 
-      const handleClickButton = () => {
+      const handleClickEnterButton = () => {
+        const roomName = input.value
+        roomView.style.display = 'flex'
+        entranceView.style.display = 'none'
+        socket.emit('SEND_ENTER', roomName)
+      }
+
+      const handleStartCaptureButton = () => {
         // 画面キャプチャ
         navigator.mediaDevices
-          .getDisplayMedia({ video: true, audio: false })
-          .then(async stream => {
-            video.srcObject = stream
-            await video.play()
-            if (Object.keys(peers).length > 0) {
-              sendCall()
-            }
+          .getDisplayMedia({
+            video: { displaySurface: 'monitor' },
+            audio: false
           })
+          .then(async stream => {
+            myVideo.srcObject = stream
+            await myVideo.play()
+          })
+      }
+
+      const handleClickCallButton = () => {
+        if (Object.keys(peers).length > 0) {
+          sendCall()
+        }
+        beforeCallView.style.display = 'none'
+        afterCallView.style.display = 'block'
       }
 
       socket.on('RECEIVE_CONNECTED', handleRecieveConnected)
@@ -159,7 +201,9 @@
       socket.on('RECEIVE_SDP', handleRecieveSDP)
       socket.on('RECEIVE_CANDIDATE', handleReceiveCandidate)
 
-      button.addEventListener('click', handleClickButton)
+      enterButton.addEventListener('click', handleClickEnterButton)
+      startCaptureButton.addEventListener('click', handleStartCaptureButton)
+      callButton.addEventListener('click', handleClickCallButton)
     })()
   </script>
 </body>
