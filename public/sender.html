@@ -7,12 +7,7 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
 </head>
 <body>
-  <div id="entrance">
-    <input type="text" id="roomName" />
-    <button id="enter">入室</button>
-  </div>
-  <!-- room は最初非表示 -->
-  <div id="room" style="background-color: red; display: none;">
+  <div id="room" style="background-color: red;">
     <div id="before_call">
       <button id="start_capture">画面共有</button>
       <button id="call">通話開始</button>
@@ -28,10 +23,6 @@
       const peers = []
 
       const socket = io('http://localhost:3000')
-
-      const entranceView = document.getElementById('entrance')
-      const input = document.querySelector('input')
-      const enterButton = document.getElementById('enter')
 
       const roomView = document.getElementById('room')
       const beforeCallView = document.getElementById('before_call')
@@ -76,11 +67,6 @@
         await peer.setLocalDescription(answer)
 
         socket.emit('SEND_SDP', { target: id, sdp: peer.localDescription })
-      }
-
-      const sendCall = () => {
-        console.info('sendCall')
-        socket.emit('SEND_CALL', { target: socketId })
       }
 
       const createPeerConnection = (id, stream) => {
@@ -168,13 +154,6 @@
         sendOffer(data.id)
       }
 
-      const handleClickEnterButton = () => {
-        const roomName = input.value
-        roomView.style.display = 'flex'
-        entranceView.style.display = 'none'
-        socket.emit('SEND_ENTER', roomName)
-      }
-
       const handleStartCaptureButton = () => {
         // 画面キャプチャ
         navigator.mediaDevices
@@ -189,9 +168,9 @@
       }
 
       const handleClickCallButton = () => {
-        sendCall()
         beforeCallView.style.display = 'none'
         afterCallView.style.display = 'block'
+        socket.emit('SEND_CALL')
       }
 
       socket.on('RECEIVE_CONNECTED', handleRecieveConnected)
@@ -199,7 +178,6 @@
       socket.on('RECEIVE_SDP', handleRecieveSDP)
       socket.on('RECEIVE_CANDIDATE', handleReceiveCandidate)
 
-      enterButton.addEventListener('click', handleClickEnterButton)
       startCaptureButton.addEventListener('click', handleStartCaptureButton)
       callButton.addEventListener('click', handleClickCallButton)
     })()
