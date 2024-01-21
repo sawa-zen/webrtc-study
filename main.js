@@ -26,9 +26,6 @@ io.on('connect', socket => {
     socket.join(roomname);
     console.log('enter id=' + socket.id + ' enter room:' + roomname);
     socket.roomname = roomname;
-    socket.broadcast
-      .to(socket.roomname)
-      .emit('RECEIVE_CALL', { id: socket.id });
   })
 
   socket.on('SEND_CALL', function() {

@@ -189,9 +189,7 @@
       }
 
       const handleClickCallButton = () => {
-        if (Object.keys(peers).length > 0) {
-          sendCall()
-        }
+        sendCall()
         beforeCallView.style.display = 'none'
         afterCallView.style.display = 'block'
       }
