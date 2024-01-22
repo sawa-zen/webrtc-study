@@ -72,17 +72,14 @@
 
         const peer = new RTCPeerConnection(config);
         peer.ontrack = (event) => {
-          console.info('ontrack', event.streams[0])
           video.srcObject = event.streams[0]
           video.play()
-          console.info('video play')
         }
         peer.onicecandidate = event => {
           console.log('onicecandidate', event)
           if (event.candidate) {
-            if (!peers[id]) return;
-            console.log('sending CANDIDATE=' + event.candidate);
-            socket.emit('SEND_CANDIDATE', { target: id, ice: event.candidate });
+            if (!peers[id]) return
+            socket.emit('SEND_CANDIDATE', { target: id, ice: event.candidate })
           } else {
             console.log('empty ice event')
           }
@@ -130,14 +127,11 @@
         console.log('receive candidate:' + ice.id);
         const peer = peers[ice.id];
         if (!peer) return;
-
         const candidate = new RTCIceCandidate(ice);
-        console.log(candidate);
         peer.addIceCandidate(candidate)
       }
 
       const handleRecieveCall = (data) => {
-        console.info('handleReceiveCall', data)
         sendOffer(data.id)
       }
 
