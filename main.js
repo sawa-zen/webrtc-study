@@ -31,11 +31,7 @@ io.on('connect', socket => {
   socket.on('SEND_SDP', function(data) {
     console.info('SEND_SDP', data)
     data.sdp.id = socket.id;
-    if (data.target) {
-      socket.to(data.target).emit('RECEIVE_SDP', data.sdp)
-    } else {
-      socket.broadcast.emit('RECEIVE_SDP', data.sdp)
-    }
+    socket.to(data.target).emit('RECEIVE_SDP', data.sdp)
   })
 
   // Ice Candidateを配信する
