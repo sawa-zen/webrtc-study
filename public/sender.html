@@ -51,7 +51,7 @@
         const offer = await peer.createOffer()
         await peer.setLocalDescription(offer)
 
-        socket.emit('SEND_SDP', { target: id, sdp: peer.localDescription })
+        socket.emit('SEND_OFFER', { target: id, sdp: peer.localDescription })
       }
 
       const sendAnswer = async (id) => {
@@ -62,7 +62,7 @@
         const answer = await peer.createAnswer()
         await peer.setLocalDescription(answer)
 
-        socket.emit('SEND_SDP', { target: id, sdp: peer.localDescription })
+        socket.emit('SEND_ANSWER', { target: id, sdp: peer.localDescription })
       }
 
       const createPeerConnection = (id, stream) => {
@@ -116,13 +116,6 @@
         peer.setRemoteDescription(answer)
       }
 
-      const handleRecieveSDP = (sdp) => {
-        switch (sdp.type) {
-          case 'offer': handleRecieveOffer(sdp); break;
-          case 'answer': handleRecieveAnswer(sdp); break;
-        }
-      }
-
       const handleReceiveCandidate = (ice) => {
         console.log('receive candidate:' + ice.id);
         const peer = peers[ice.id];
@@ -152,7 +145,8 @@
       }
 
       socket.on('RECEIVE_CALL', handleRecieveCall)
-      socket.on('RECEIVE_SDP', handleRecieveSDP)
+      socket.on('RECEIVE_OFFER', handleRecieveOffer)
+      socket.on('RECEIVE_ANSWER', handleRecieveAnswer)
       socket.on('RECEIVE_CANDIDATE', handleReceiveCandidate)
 
       startCaptureButton.addEventListener('click', handleStartCaptureButton)

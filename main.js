@@ -24,11 +24,16 @@ io.on('connect', socket => {
     socket.broadcast.emit('RECEIVE_CALL', { id: socket.id });
   })
 
-  // offerとanswerは SDP(SessionDescriptionProtocol)というプロトコルとして処理します
-  socket.on('SEND_SDP', function(data) {
-    console.info('SEND_SDP', data)
+  socket.on('SEND_OFFER', function(data) {
+    console.info('SEND_OFFER', data)
     data.sdp.id = socket.id;
-    socket.to(data.target).emit('RECEIVE_SDP', data.sdp)
+    socket.to(data.target).emit('RECEIVE_OFFER', data.sdp)
+  })
+
+  socket.on('SEND_ANSWER', function(data) {
+    console.info('SEND_ANSWER', data)
+    data.sdp.id = socket.id;
+    socket.to(data.target).emit('RECEIVE_ANSWER', data.sdp)
   })
 
   // Ice Candidateを配信する
