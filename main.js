@@ -21,7 +21,6 @@ io.on('connect', socket => {
 
   // サーバ側
   socket.on('SEND_CALL', function() {
-    console.log('enter id=' + socket.id);
     socket.broadcast.emit('RECEIVE_CALL', { id: socket.id });
   })
 

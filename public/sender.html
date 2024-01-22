@@ -120,11 +120,9 @@
       }
 
       const handleRecieveSDP = (sdp) => {
-        console.info('handleRecieveSDP', sdp)
         switch (sdp.type) {
           case 'offer': handleRecieveOffer(sdp); break;
           case 'answer': handleRecieveAnswer(sdp); break;
-          default: console.log('unkown sdp...'); break;
         }
       }
 
