@@ -39,44 +39,16 @@
         return video
       }
 
-      const sendOffer = async (id) => {
-        console.info('sendOffer', id)
-        const peer = peers[id] || createPeerConnection(id)
-
-        if (!peers[id]) {
-          console.info('add peer', id)
-          peers[id] = peer
-        }
-
-        const offer = await peer.createOffer()
-        await peer.setLocalDescription(offer)
-
-        socket.emit('SEND_OFFER', { target: id, sdp: peer.localDescription })
-      }
-
-      const sendAnswer = async (id) => {
-        console.info('sendAnswer', id)
-        const peer = peers[id]
-        if (!peer) return
-
-        const answer = await peer.createAnswer()
-        await peer.setLocalDescription(answer)
-
-        socket.emit('SEND_ANSWER', { target: id, sdp: peer.localDescription })
-      }
-
       const createPeerConnection = (id, stream) => {
-        const config = { iceServers: [] };
         const video = createVideo(id)
         videos.appendChild(video)
 
-        const peer = new RTCPeerConnection(config);
+        const peer = new RTCPeerConnection({ iceServers: [] });
         peer.ontrack = (event) => {
           video.srcObject = event.streams[0]
           video.play()
         }
         peer.onicecandidate = event => {
-          console.log('onicecandidate', event)
           if (event.candidate) {
             if (!peers[id]) return
             socket.emit('SEND_CANDIDATE', { target: id, ice: event.candidate })
@@ -88,8 +60,27 @@
         return peer;
       }
 
+      const sendOffer = async (id) => {
+        const peer = peers[id] || createPeerConnection(id)
+        if (!peers[id]) peers[id] = peer
+
+        const offer = await peer.createOffer()
+        await peer.setLocalDescription(offer)
+
+        socket.emit('SEND_OFFER', { target: id, sdp: peer.localDescription })
+      }
+
+      const sendAnswer = async (id) => {
+        const peer = peers[id]
+        if (!peer) return
+
+        const answer = await peer.createAnswer()
+        await peer.setLocalDescription(answer)
+
+        socket.emit('SEND_ANSWER', { target: id, sdp: peer.localDescription })
+      }
+
       const handleRecieveOffer = async (sdp) => {
-        console.info('handleRecieveOffer', sdp.id)
         const peer = peers[sdp.id] || createPeerConnection(sdp.id)
 
         const stream = myVideo.srcObject
@@ -98,7 +89,6 @@
         })
 
         if (!peers[sdp.id]) {
-          console.info('add peer', sdp.id)
           peers[sdp.id] = peer;
         }
 
@@ -109,7 +99,6 @@
       }
 
       const handleRecieveAnswer = (sdp) => {
-        console.info('handleRecieveAnswer', sdp.id)
         const peer = peers[sdp.id]
         if (!peer) return;
         const answer = new RTCSessionDescription(sdp);
@@ -117,7 +106,6 @@
       }
 
       const handleReceiveCandidate = (ice) => {
-        console.log('receive candidate:' + ice.id);
         const peer = peers[ice.id];
         if (!peer) return;
         const candidate = new RTCIceCandidate(ice);
