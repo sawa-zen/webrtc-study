@@ -19,8 +19,6 @@ io.on('connect', socket => {
   console.log('io', 'connect')
   console.log('io', 'socket: ', socket.id)
 
-  socket.emit('RECEIVE_CONNECTED', { id: socket.id })
-
   // サーバ側
   socket.on('SEND_CALL', function() {
     console.log('enter id=' + socket.id);

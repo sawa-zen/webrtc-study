@@ -10,7 +10,6 @@
   <div id="room" style="background-color: red;">
     <div id="before_call">
       <button id="start_capture">画面共有</button>
-      <button id="call">通話開始</button>
     </div>
     <div id="after_call">
       <video id="my_video" autoplay playsinline style="border: 1px solid black; width: 200px;"></video>
@@ -142,13 +141,6 @@
         peer.addIceCandidate(candidate)
       }
 
-      // Socket との接続が確立したら socket id を受け取る
-      const handleRecieveConnected = (data) => {
-        console.info('handleReceveEnter', data)
-        // socket情報をstateに持っておく
-        socketId = data.id
-      }
-
       const handleRecieveCall = (data) => {
         console.info('handleReceiveCall', data)
         sendOffer(data.id)
@@ -164,22 +156,17 @@
           .then(async stream => {
             myVideo.srcObject = stream
             await myVideo.play()
+            beforeCallView.style.display = 'none'
+            afterCallView.style.display = 'block'
+            socket.emit('SEND_CALL')
           })
       }
 
-      const handleClickCallButton = () => {
-        beforeCallView.style.display = 'none'
-        afterCallView.style.display = 'block'
-        socket.emit('SEND_CALL')
-      }
-
-      socket.on('RECEIVE_CONNECTED', handleRecieveConnected)
       socket.on('RECEIVE_CALL', handleRecieveCall)
       socket.on('RECEIVE_SDP', handleRecieveSDP)
       socket.on('RECEIVE_CANDIDATE', handleReceiveCandidate)
 
       startCaptureButton.addEventListener('click', handleStartCaptureButton)
-      callButton.addEventListener('click', handleClickCallButton)
     })()
   </script>
 </body>
