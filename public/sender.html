@@ -7,15 +7,14 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
 </head>
 <body>
-  <div id="room" style="background-color: red;">
-    <div id="before_call">
-      <button id="start_capture">画面共有</button>
+  <div id="before_call">
+    <button id="start_capture">画面共有</button>
+  </div>
+  <div id="after_call">
+    <video id="my_video" autoplay playsinline style="border: 1px solid black; width: 200px;"></video>
+    <div id="videos">
     </div>
-    <div id="after_call">
-      <video id="my_video" autoplay playsinline style="border: 1px solid black; width: 200px;"></video>
-      <div id="videos">
-      </div>
-    </div>
+  </div>
   <script>
     (async () => {
       var socketId = null;
@@ -23,10 +22,8 @@
 
       const socket = io('http://localhost:3000')
 
-      const roomView = document.getElementById('room')
       const beforeCallView = document.getElementById('before_call')
       const startCaptureButton = document.getElementById('start_capture')
-      const callButton = document.getElementById('call')
 
       const afterCallView = document.getElementById('after_call')
       const myVideo = document.getElementById('my_video')
