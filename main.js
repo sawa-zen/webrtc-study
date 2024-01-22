@@ -34,12 +34,8 @@ io.on('connect', socket => {
   // Ice Candidateを配信する
   socket.on('SEND_CANDIDATE', function(data) {
     console.info('SEND_CANDIDATE', data)
-    if (data.target) {
-      data.ice.id = socket.id;
-      socket.to(data.target).emit('RECEIVE_CANDIDATE', data.ice)
-    } else {
-      console.log('candidate need target id')
-    }
+    data.ice.id = socket.id;
+    socket.to(data.target).emit('RECEIVE_CANDIDATE', data.ice)
   })
 })
 
