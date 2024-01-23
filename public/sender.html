@@ -12,8 +12,7 @@
   </div>
   <div id="after_call">
     <video id="my_video" autoplay playsinline style="border: 1px solid black; width: 200px;"></video>
-    <div id="videos">
-    </div>
+    <div id="videos"></div>
   </div>
   <script>
     (async () => {
@@ -67,7 +66,7 @@
         const offer = await peer.createOffer()
         await peer.setLocalDescription(offer)
 
-        socket.emit('SEND_OFFER', { target: id, sdp: peer.localDescription })
+        socket.emit('SEND_OFFER', { sdp: peer.localDescription })
       }
 
       const sendAnswer = async (id) => {
@@ -127,7 +126,6 @@
             myVideo.srcObject = stream
             await myVideo.play()
             beforeCallView.style.display = 'none'
-            afterCallView.style.display = 'block'
             socket.emit('SEND_CALL')
           })
       }

@@ -27,7 +27,7 @@ io.on('connect', socket => {
   socket.on('SEND_OFFER', function(data) {
     console.info('SEND_OFFER', data)
     data.sdp.id = socket.id;
-    socket.to(data.target).emit('RECEIVE_OFFER', data.sdp)
+    socket.broadcast.emit('RECEIVE_OFFER', data.sdp)
   })
 
   socket.on('SEND_ANSWER', function(data) {
