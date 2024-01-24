@@ -12,129 +12,75 @@
   </div>
   <div id="after_call">
     <video id="my_video" autoplay playsinline style="border: 1px solid black; width: 200px;"></video>
-    <div id="videos"></div>
+    <video id="your_video" autoplay playsinline style="border: 1px solid black; width: 200px;"></video>
   </div>
   <script>
     (async () => {
-      var socketId = null;
-      const peers = []
-
       const socket = io('http://localhost:3000')
+      const myPeer = new RTCPeerConnection()
 
-      const beforeCallView = document.getElementById('before_call')
       const startCaptureButton = document.getElementById('start_capture')
-
-      const afterCallView = document.getElementById('after_call')
       const myVideo = document.getElementById('my_video')
-      const videos = document.getElementById('videos')
+      const yourVideo = document.getElementById('your_video')
 
-      const createVideo = (id) => {
-        const video = document.createElement('video')
-        video.id = id
-        video.autoplay = true
-        video.playsinline = true
-        video.style.border = '1px solid black'
-        video.style.width = '200px'
-        return video
+      const sendOffer = async () => {
+        const offer = await myPeer.createOffer()
+        await myPeer.setLocalDescription(offer)
+        socket.emit('SEND_OFFER', { sdp: myPeer.localDescription })
       }
 
-      const createPeerConnection = (id, stream) => {
-        const video = createVideo(id)
-        videos.appendChild(video)
-
-        const peer = new RTCPeerConnection({ iceServers: [] });
-        peer.ontrack = (event) => {
-          video.srcObject = event.streams[0]
-          video.play()
-        }
-        peer.onicecandidate = event => {
-          if (event.candidate) {
-            if (!peers[id]) return
-            socket.emit('SEND_CANDIDATE', { target: id, ice: event.candidate })
-          } else {
-            console.log('empty ice event')
-          }
-        }
-
-        return peer;
-      }
-
-      const sendOffer = async (id) => {
-        const peer = peers[id] || createPeerConnection(id)
-        if (!peers[id]) peers[id] = peer
-
-        const offer = await peer.createOffer()
-        await peer.setLocalDescription(offer)
-
-        socket.emit('SEND_OFFER', { sdp: peer.localDescription })
-      }
-
-      const sendAnswer = async (id) => {
-        const peer = peers[id]
-        if (!peer) return
-
-        const answer = await peer.createAnswer()
-        await peer.setLocalDescription(answer)
-
-        socket.emit('SEND_ANSWER', { target: id, sdp: peer.localDescription })
+      const sendAnswer = async () => {
+        const answer = await myPeer.createAnswer()
+        await myPeer.setLocalDescription(answer)
+        socket.emit('SEND_ANSWER', { sdp: myPeer.localDescription })
       }
 
       const handleRecieveOffer = async (sdp) => {
-        const peer = peers[sdp.id] || createPeerConnection(sdp.id)
-
-        const stream = myVideo.srcObject
-        stream.getTracks().forEach(track => {
-          peer.addTrack(track, stream)
-        })
-
-        if (!peers[sdp.id]) {
-          peers[sdp.id] = peer;
-        }
-
+        if (!myVideo.srcObject) return
         const offer = new RTCSessionDescription(sdp)
-        await peer.setRemoteDescription(offer)
-
-        sendAnswer(sdp.id)
+        await myPeer.setRemoteDescription(offer)
+        sendAnswer()
       }
 
       const handleRecieveAnswer = (sdp) => {
-        const peer = peers[sdp.id]
-        if (!peer) return;
         const answer = new RTCSessionDescription(sdp);
-        peer.setRemoteDescription(answer)
+        myPeer.setRemoteDescription(answer)
       }
 
       const handleReceiveCandidate = (ice) => {
-        const peer = peers[ice.id];
-        if (!peer) return;
+        if (!myVideo.srcObject) return
         const candidate = new RTCIceCandidate(ice);
-        peer.addIceCandidate(candidate)
-      }
-
-      const handleRecieveCall = (data) => {
-        sendOffer(data.id)
+        myPeer.addIceCandidate(candidate)
       }
 
       const handleStartCaptureButton = () => {
-        // 画面キャプチャ
         navigator.mediaDevices
-          .getDisplayMedia({
-            video: { displaySurface: 'monitor' },
-            audio: false
-          })
+          .getDisplayMedia({ video: true, audio: false })
           .then(async stream => {
             myVideo.srcObject = stream
             await myVideo.play()
-            beforeCallView.style.display = 'none'
-            socket.emit('SEND_CALL')
+            stream.getTracks().forEach(track => {
+              myPeer.addTrack(track, stream)
+            })
+            sendOffer()
           })
       }
 
-      socket.on('RECEIVE_CALL', handleRecieveCall)
+      const handleOnTrack = (event) => {
+        yourVideo.srcObject = event.streams[0]
+        yourVideo.play()
+      }
+
+      const handleOnIceCandidate = event => {
+        if (!event.candidate) return
+        socket.emit('SEND_CANDIDATE', { ice: event.candidate })
+      }
+
+      myPeer.ontrack = handleOnTrack
+      myPeer.onicecandidate = handleOnIceCandidate
       socket.on('RECEIVE_OFFER', handleRecieveOffer)
       socket.on('RECEIVE_ANSWER', handleRecieveAnswer)
       socket.on('RECEIVE_CANDIDATE', handleReceiveCandidate)
-
       startCaptureButton.addEventListener('click', handleStartCaptureButton)
     })()
   </script>
