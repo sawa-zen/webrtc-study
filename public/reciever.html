@@ -3,24 +3,46 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title>Reciever</title>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
 </head>
 <body>
-  <video style="background-color: black;"></video>
-  <button>送信</button>
+  <video id="your_video" autoplay playsinline style="border: 1px solid black; width: 200px;"></video>
   <script>
-    (() => {
+    (async () => {
+      let isStarted = false
       const socket = io('http://localhost:3000')
-      const button = document.querySelector('button')
+      const myPeer = new RTCPeerConnection()
 
-      socket.on('recieve_message', (data) => {
-        console.info('recieve_message', data)
-      })
+      const yourVideo = document.getElementById('your_video')
 
-      button.addEventListener('click', () => {
-        socket.emit('send_message', { message: 'from reviever' })
-      })
+      const handleRecieveOffer = async (sdp) => {
+        const offer = new RTCSessionDescription(sdp)
+        await myPeer.setRemoteDescription(offer)
+        const answer = await myPeer.createAnswer()
+        await myPeer.setLocalDescription(answer)
+        socket.emit('SEND_ANSWER', { sdp: myPeer.localDescription })
+      }
+
+      const handleReceiveCandidate = (ice) => {
+        const candidate = new RTCIceCandidate(ice);
+        myPeer.addIceCandidate(candidate)
+      }
+
+      const handleOnTrack = (event) => {
+        yourVideo.srcObject = event.streams[0]
+        yourVideo.play()
+      }
+
+      const handleOnIceCandidate = event => {
+        if (!event.candidate) return
+        socket.emit('SEND_CANDIDATE', { ice: event.candidate })
+      }
+
+      myPeer.ontrack = handleOnTrack
+      myPeer.onicecandidate = handleOnIceCandidate
+      socket.on('RECEIVE_OFFER', handleRecieveOffer)
+      socket.on('RECEIVE_CANDIDATE', handleReceiveCandidate)
     })()
   </script>
 </body>
