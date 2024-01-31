@@ -8,11 +8,13 @@
 </head>
 <body>
   <video id="your_video" autoplay playsinline style="border: 1px solid black; width: 200px;"></video>
+  <button id="connect_button">接続</button>
   <script>
     (async () => {
       let isStarted = false
       const socket = io('http://localhost:3000')
       const myPeer = new RTCPeerConnection()
+      const connectButton = document.getElementById('connect_button')
 
       const yourVideo = document.getElementById('your_video')
 
@@ -43,6 +45,11 @@
       myPeer.onicecandidate = handleOnIceCandidate
       socket.on('RECEIVE_OFFER', handleRecieveOffer)
       socket.on('RECEIVE_CANDIDATE', handleReceiveCandidate)
+      connectButton.addEventListener('click', () => {
+        isStarted = true
+        connectButton.disabled = true
+        socket.emit('SEND_CALL')
+      })
     })()
   </script>
 </body>

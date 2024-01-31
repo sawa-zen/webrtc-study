@@ -48,7 +48,7 @@
             stream.getTracks().forEach(track => {
               myPeer.addTrack(track, stream)
             })
-            sendOffer()
+            startCaptureButton.disabled = true
           })
       }
 
@@ -57,7 +57,12 @@
         socket.emit('SEND_CANDIDATE', { ice: event.candidate })
       }
 
+      const handleReceiveCall = () => {
+        sendOffer()
+      }
+
       myPeer.onicecandidate = handleOnIceCandidate
+      socket.on('RECEIVE_CALL', handleReceiveCall)
       socket.on('RECEIVE_ANSWER', handleRecieveAnswer)
       socket.on('RECEIVE_CANDIDATE', handleReceiveCandidate)
       startCaptureButton.addEventListener('click', handleStartCaptureButton)

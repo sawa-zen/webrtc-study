@@ -16,6 +16,10 @@ const io = new Server(server, {
 })
 
 io.on('connect', socket => {
+  socket.on('SEND_CALL', function() {
+    socket.broadcast.emit('RECEIVE_CALL')
+  })
+
   socket.on('SEND_OFFER', function(data) {
     socket.broadcast.emit('RECEIVE_OFFER', data.sdp)
   })
