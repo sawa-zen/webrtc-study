@@ -43,18 +43,15 @@
         socket.emit('SEND_CANDIDATE', { ice: event.candidate })
       }
 
-      myPeer.ontrack = handleOnTrack
-      myPeer.onicecandidate = handleOnIceCandidate
-      socket.on('RECEIVE_OFFER', handleRecieveOffer)
-      socket.on('RECEIVE_CANDIDATE', handleReceiveCandidate)
-      socket.on('RECEIVE_DISCONNECT', () => {
+      const handleRecieveDisconnect = () => {
         alert('相手が切断しました')
         loading = false
         isStarted = false
         connectButton.disabled = false
         yourVideo.srcObject = null
-      })
-      connectButton.addEventListener('click', () => {
+      }
+
+      const handleClickConnectButton = () => {
         loading = true
         connectButton.disabled = true
         socket.emit('SEND_CALL')
@@ -65,7 +62,14 @@
           connectButton.disabled = false
           loading = false
         }, 1000)
-      })
+      }
+
+      myPeer.ontrack = handleOnTrack
+      myPeer.onicecandidate = handleOnIceCandidate
+      socket.on('RECEIVE_OFFER', handleRecieveOffer)
+      socket.on('RECEIVE_CANDIDATE', handleReceiveCandidate)
+      socket.on('RECEIVE_DISCONNECT', handleRecieveDisconnect)
+      connectButton.addEventListener('click', handleClickConnectButton)
     })()
   </script>
 </body>
