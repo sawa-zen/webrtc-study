@@ -7,10 +7,11 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
 </head>
 <body>
-  <video id="your_video" autoplay playsinline style="border: 1px solid black; background-color: blueviolet;" width="1680"></video>
+  <video id="your_video" autoplay playsinline style="border: 1px solid black; background-color: blueviolet;" width="400"></video>
   <button id="connect_button">接続</button>
   <script>
     (async () => {
+      let loading = false
       let isStarted = false
       const socket = io('https://localhost:3000')
       const myPeer = new RTCPeerConnection()
@@ -19,6 +20,7 @@
       const yourVideo = document.getElementById('your_video')
 
       const handleRecieveOffer = async (sdp) => {
+        loading = false
         const offer = new RTCSessionDescription(sdp)
         await myPeer.setRemoteDescription(offer)
         const answer = await myPeer.createAnswer()
@@ -45,10 +47,24 @@
       myPeer.onicecandidate = handleOnIceCandidate
       socket.on('RECEIVE_OFFER', handleRecieveOffer)
       socket.on('RECEIVE_CANDIDATE', handleReceiveCandidate)
+      socket.on('RECEIVE_DISCONNECT', () => {
+        alert('相手が切断しました')
+        loading = false
+        isStarted = false
+        connectButton.disabled = false
+        yourVideo.srcObject = null
+      })
       connectButton.addEventListener('click', () => {
-        isStarted = true
+        loading = true
         connectButton.disabled = true
         socket.emit('SEND_CALL')
+        setTimeout(() => {
+          if (!loading) return
+          alert('接続に失敗しました')
+          isStarted = false
+          connectButton.disabled = false
+          loading = false
+        }, 1000)
       })
     })()
   </script>

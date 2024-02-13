@@ -24,6 +24,10 @@ const io = new Server(server, {
 })
 
 io.on('connect', socket => {
+  socket.on('disconnect', () => {
+    socket.broadcast.emit('RECEIVE_DISCONNECT')
+  })
+
   socket.on('SEND_CALL', function() {
     socket.broadcast.emit('RECEIVE_CALL')
   })
