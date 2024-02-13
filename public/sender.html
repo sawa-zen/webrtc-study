@@ -7,12 +7,12 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
 </head>
 <body>
-  <video id="my_video" autoplay playsinline style="border: 1px solid black; width: 200px;"></video>
+  <video id="my_video" autoplay playsinline style="border: 1px solid black;" width="1680"></video>
   <button id="start_capture">画面共有</button>
   <script>
     (async () => {
       let isStarted = false
-      const socket = io('http://localhost:3000')
+      const socket = io('https://localhost:3000')
       const myPeer = new RTCPeerConnection()
 
       const startCaptureButton = document.getElementById('start_capture')
@@ -38,14 +38,20 @@
       const handleStartCaptureButton = () => {
         navigator.mediaDevices
           .getDisplayMedia({
-            video: { frameRate: 30, displaySurface: "monitor" },
-            audio: false,
+            video: {
+              frameRate: 16,
+              displaySurface: "monitor",
+              width: { ideal: 1680 * 2, max: 1680 * 2 },
+              height: { ideal: 945 * 2, max: 945 * 2 },
+              noiseSuppression: true,
+            },
           })
           .then(async stream => {
             isStarted = true
             myVideo.srcObject = stream
             await myVideo.play()
             stream.getTracks().forEach(track => {
+              if( track.kind && track.kind == 'video') track.contentHint = "detail";
               myPeer.addTrack(track, stream)
             })
             startCaptureButton.disabled = true

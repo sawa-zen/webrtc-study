@@ -1,12 +1,20 @@
 // 参考文献: https://qiita.com/kotazuck/items/7ad1672c71aa38d6af6d
 const express = require('express')
-const http = require('http')
+const fs = require('fs')
+const https = require('https')
 const { Server } = require('socket.io')
+const ip = require('ip')
+
+console.log(ip.address())
 
 const app = express()
 app.use(express.static(__dirname + '/public'))
 
-const server = http.createServer(app)
+const options = {
+	key: fs.readFileSync('./localhost-key.pem'),
+	cert: fs.readFileSync('./localhost.pem')
+};
+const server = https.createServer(options, app);
 
 const io = new Server(server, {
   cors: {
@@ -33,4 +41,4 @@ io.on('connect', socket => {
   })
 })
 
-server.listen(3000)
+server.listen(3000, '0.0.0.0')
