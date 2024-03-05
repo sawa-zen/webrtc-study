@@ -39,11 +39,8 @@
         navigator.mediaDevices
           .getDisplayMedia({
             video: {
-              frameRate: 16,
+              frameRate: 8,
               displaySurface: "monitor",
-              width: { ideal: 1680 * 2, max: 1680 * 2 },
-              height: { ideal: 945 * 2, max: 945 * 2 },
-              noiseSuppression: true,
             },
           })
           .then(async stream => {
