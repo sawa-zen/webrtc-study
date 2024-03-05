@@ -12,7 +12,7 @@
   <script>
     (async () => {
       let isStarted = false
-      const socket = io('https://localhost:3000')
+      const socket = io('https://192.168.0.22:3000')
       const myPeer = new RTCPeerConnection()
 
       const startCaptureButton = document.getElementById('start_capture')
